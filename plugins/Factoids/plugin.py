@@ -141,7 +141,8 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
                               (NULL, %s, %s, %s, %s)""",
                            id, name, int(time.time()), factoid)
             db.commit()
-            irc.replySuccess()
+            updated_factoids = self._lookupFactoid(channel, key)
+            self._replyFactoids(irc, channel, key, updated_factoids)
         else:
             irc.error('That factoid is locked.')
     learn = wrap(learn, ['factoid'])
