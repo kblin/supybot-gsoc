@@ -35,6 +35,7 @@ import string
 import supybot.conf as conf
 import supybot.ircdb as ircdb
 import supybot.utils as utils
+import supybot.log as log
 from supybot.commands import *
 import supybot.plugins as plugins
 import supybot.ircutils as ircutils
@@ -166,7 +167,7 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
         return [t[0] for t in cursor.fetchall()]
 
     def _replyFactoids(self, irc, channel, key, factoids,
-                       number=0, error=True):
+                       number=0, error=True, to=None):
         if factoids:
             if number:
                 try:
@@ -178,7 +179,7 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
                 intro = self.registryValue('factoidPrefix', channel)
                 prefix = format('%q %s', key, intro)
                 if len(factoids) == 1:
-                    irc.reply(prefix + factoids[0])
+                    irc.reply(prefix + factoids[0], to=to)
                 else:
                     factoidsS = []
                     counter = 1
@@ -186,7 +187,7 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
                         factoidsS.append(format('(#%i) %s', counter, factoid))
                         counter += 1
                     irc.replies(factoidsS, prefixer=prefix,
-                                joiner=', or ', onlyPrefixFirst=True)
+                                joiner=', or ', onlyPrefixFirst=True, to=to)
         elif error:
             irc.error('No factoid matches that key.')
 
@@ -194,9 +195,25 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
         if irc.isChannel(msg.args[0]):
             channel = msg.args[0]
             if self.registryValue('replyWhenInvalidCommand', channel):
+                redirect_nick=None
+                # we're looking for @factoid | nick
+                if "|" in tokens and tokens.index("|") == len(tokens) - 2:
+                    # get the nick
+                    redirect_nick = tokens.pop()
+                    c = irc.state.channels[channel]
+                    if not ircutils.isNick(redirect_nick) or \
+                       redirect_nick not in c.users:
+                        irc.error('No such user.')
+                        return
+                    # don't want to talk to myself
+                    if redirect_nick == irc.nick:
+                        redirect_nick = None
+                    # and get rid of the | character
+                    tokens.pop()
                 key = ' '.join(tokens)
                 factoids = self._lookupFactoid(channel, key)
-                self._replyFactoids(irc, channel, key, factoids, error=False)
+                self._replyFactoids(irc, channel, key, factoids, error=False,
+                                    to=redirect_nick)
 
     def whatis(self, irc, msg, args, channel, words):
         """[<channel>] <key> [<number>]
