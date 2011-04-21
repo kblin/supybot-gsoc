@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2002-2005, Jeremiah Fincher
+# Copyright (c) 2011, Kai Blin
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,45 +25,60 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
 ###
 
-import sys
-import os.path
-import dynamicScope
-
 import supybot.utils as utils
+from supybot.commands import *
+import supybot.plugins as plugins
+import supybot.ircutils as ircutils
+import supybot.callbacks as callbacks
 
-__builtins__['format'] = utils.str.format
 
-class Author(object):
-    def __init__(self, name=None, nick=None, email=None, **kwargs):
-        self.__dict__.update(kwargs)
-        self.name = name
-        self.nick = nick
-        self.email = email
+class Queue(callbacks.Plugin):
+    """A simple queue manager for meetings."""
+    _queue = []
 
-    def __str__(self):
-        return '%s (%s) <%s>' % (self.name, self.nick,
-                                 utils.web.mungeEmail(self.email))
+    def queue(self, irc, msg, args, notice):
+        """[<notice>]
 
-class authors(object): # This is basically a bag.
-    jemfinch = Author('Jeremy Fincher', 'jemfinch', 'jemfinch@users.sf.net')
-    jamessan = Author('James Vega', 'jamessan', 'jamessan@users.sf.net')
-    strike = Author('Daniel DiPaolo', 'Strike', 'ddipaolo@users.sf.net')
-    baggins = Author('William Robinson', 'baggins', 'airbaggins@users.sf.net')
-    skorobeus = Author('Kevin Murphy', 'Skorobeus', 'skoro@skoroworld.com')
-    inkedmn = Author('Brett Kelly', 'inkedmn', 'inkedmn@users.sf.net')
-    bwp = Author('Brett Phipps', 'bwp', 'phippsb@gmail.com')
-    bear = Author('Mike Taylor', 'bear', 'bear@code-bear.com')
-    grantbow = Author('Grant Bowman', 'Grantbow', 'grantbow@grantbow.com')
-    kai = Author('Kai Blin', 'kblin', 'kai.blin+supybot@gmail.com')
-    unknown = Author('Unknown author', 'unknown', 'unknown@supybot.org')
+        Queue up for saying something at the meeting, with an optional notice
+        """
+        self._queue.append((msg.nick, notice))
+        irc.reply("I queued you at position %s in the queue" % len(self._queue))
+    queue = wrap(queue, [additional('text')])
 
-    # Let's be somewhat safe about this.
-    def __getattr__(self, attr):
-        try:
-            return getattr(super(authors, self), attr.lower())
-        except AttributeError:
-            return self.unknown
+    def showqueue(self, irc, msg, args):
+        """Show the current queue"""
+        if len(self._queue) == 0:
+            irc.reply("The queue is empty", private=True)
+            return
+        i = 1
+        for nick, notice in self._queue:
+            response = "%02d. %s" % (i, nick)
+            if notice is not None:
+                response += " %s" % notice
+            irc.reply(response, private=True)
+            i += 1
+            if i > 10:
+                irc.reply("... and more ...", private=True)
+
+    showqueue = wrap(showqueue)
+
+    def nextinline(self, irc, msg, args):
+        """Show the next person in line"""
+        if len(self._queue) > 0:
+            nick, notice = self._queue.pop(0)
+            response = "Next in line is %s" % nick
+            if notice is not None:
+                response += " with notice '%s'" % notice
+            irc.reply(response)
+        else:
+            irc.reply("There's nobody queued up right now.")
+    nextinline = wrap(nextinline, ["owner"])
+
+
+Class = Queue
+
 
 # vim:set shiftwidth=4 softtabstop=4 expandtab textwidth=79:
