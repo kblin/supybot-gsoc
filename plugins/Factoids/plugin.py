@@ -304,7 +304,8 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
                     return
                 cursor.execute("DELETE FROM factoids WHERE id=%s", id)
                 db.commit()
-                irc.replySuccess()
+                factoids = self._lookupFactoid(channel, key)
+                self._replyFactoids(irc, channel, key, factoids)
             else:
                 irc.error('%s factoids have that key.  '
                           'Please specify which one to remove, '
