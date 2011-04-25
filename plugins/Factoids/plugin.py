@@ -223,6 +223,20 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
         necessary if the message isn't sent in the channel itself.
         """
         number = None
+        redirect_nick = None
+        if len(words) > 2:
+            if words[-2] == "|":
+                redirect_nick = words.pop()
+                c = irc.state.channels[msg.args[0]]
+                if not ircutils.isNick(redirect_nick) or \
+                   redirect_nick not in c.users:
+                    irc.error("No such user")
+                    return
+                # don't talk to myself
+                if redirect_nick == irc.nick:
+                    redirect_nick = None
+                # get rid of the | character
+                words.pop()
         if len(words) > 1:
             if words[-1].isdigit():
                 number = int(words.pop())
@@ -230,7 +244,8 @@ class Factoids(callbacks.Plugin, plugins.ChannelDBHandler):
                     irc.errorInvalid('key id')
         key = ' '.join(words)
         factoids = self._lookupFactoid(channel, key)
-        self._replyFactoids(irc, channel, key, factoids, number)
+        self._replyFactoids(irc, channel, key, factoids, number,
+                            to=redirect_nick)
     whatis = wrap(whatis, ['channel', many('something')])
 
     def lock(self, irc, msg, args, channel, key):
