@@ -62,7 +62,7 @@ class Queue(callbacks.Plugin):
             i += 1
             if i > 10:
                 irc.reply("... and more ...", private=True)
-
+                break
     showqueue = wrap(showqueue)
 
     def nextinline(self, irc, msg, args):
