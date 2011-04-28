@@ -36,17 +36,58 @@ import supybot.callbacks as callbacks
 
 
 class Queue(callbacks.Plugin):
-    """A simple queue manager for meetings."""
+    """A simple queue manager for meetings.
+
+    You can add yourself to the queue by using the queue command, giving an
+    optional notice that the bot can display when it's your turn. If you call
+    the queue command again, you can change the saved notice. Doing so won't
+    make you lose your queue position.
+    In case you changed your mind, the dequeue command allows you to remove
+    yourself from the queue.
+    The showqueue command shows your current queue position.
+    """
     _queue = []
+
+    def _find_in_queue(self, nick):
+        """Check if a given user is in the queue"""
+        i = 0
+        for user, msg in self._queue:
+            if user == nick:
+                return i
+            i += 1
+        return -1
 
     def queue(self, irc, msg, args, notice):
         """[<notice>]
 
-        Queue up for saying something at the meeting, with an optional notice
+        Queue up for saying something at the meeting, with an optional notice.
+        You can remove yourself from the queue again by using the dequeue
+        command.
         """
-        self._queue.append((msg.nick, notice))
-        irc.reply("I queued you at position %s in the queue" % len(self._queue))
+        pos = self._find_in_queue(msg.nick)
+        if pos < 0:
+            self._queue.append((msg.nick, notice))
+            irc.reply("I queued you at position %s in the queue" % len(self._queue))
+        elif self._queue[pos][1] != notice:
+            self._queue[pos] = (msg.nick, notice)
+            irc.reply("You're queued at position %s already, I've updated "\
+                      "notice to '%s'" % (pos + 1, notice))
+        else:
+            irc.reply("You're already in the queue at position %s." % (pos+1))
     queue = wrap(queue, [additional('text')])
+
+    def dequeue(self, irc, msg, args):
+        """Takes no arguments
+
+        Remove yourself from the queue.
+        """
+        pos = self._find_in_queue(msg.nick)
+        if pos < 0:
+            irc.reply("You're not in the queue, did your nick change?")
+            return
+        self._queue.pop(pos)
+        irc.reply("Removed you from the queue as requested")
+    dequeue = wrap(dequeue)
 
     def showqueue(self, irc, msg, args):
         """Show the current queue"""
