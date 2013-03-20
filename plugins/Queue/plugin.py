@@ -94,16 +94,12 @@ class Queue(callbacks.Plugin):
         if len(self._queue) == 0:
             irc.reply("The queue is empty", private=True)
             return
-        i = 1
-        for nick, notice in self._queue:
-            response = "%02d. %s" % (i, nick)
-            if notice is not None:
-                response += " %s" % notice
-            irc.reply(response, private=True)
-            i += 1
-            if i > 10:
-                irc.reply("... and more ...", private=True)
-                break
+        pos = self._find_in_queue(msg.nick)
+        if pos < 0:
+            irc.reply("You're not in the queue, did your nick change?",
+                      private=True)
+            return
+        irc.reply("You are queued at position %d" % (pos + 1), private=True)
     showqueue = wrap(showqueue)
 
     def nextinline(self, irc, msg, args):
