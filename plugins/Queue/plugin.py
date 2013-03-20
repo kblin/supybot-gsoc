@@ -27,7 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ###
-
+from __future__ import with_statement
 import supybot.utils as utils
 from supybot.commands import *
 import supybot.plugins as plugins
@@ -57,6 +57,17 @@ class Queue(callbacks.Plugin):
             i += 1
         return -1
 
+    def _dump_queue(self):
+        """Dump the queue to a file"""
+        outfile = self.registryValue('dumpFile')
+        with open(outfile, 'w') as h:
+            i = 1
+            for nick, msg in self._queue:
+                if msg is None:
+                    msg = '[no message]'
+                h.write("% 2d\t%s\t%s\n" % (i, nick, msg))
+                i += 1
+
     def queue(self, irc, msg, args, notice):
         """[<notice>]
 
@@ -68,10 +79,12 @@ class Queue(callbacks.Plugin):
         if pos < 0:
             self._queue.append((msg.nick, notice))
             irc.reply("I queued you at position %s in the queue" % len(self._queue))
+            self._dump_queue()
         elif self._queue[pos][1] != notice:
             self._queue[pos] = (msg.nick, notice)
             irc.reply("You're queued at position %s already, I've updated "\
                       "notice to '%s'" % (pos + 1, notice))
+            self._dump_queue()
         else:
             irc.reply("You're already in the queue at position %s." % (pos+1))
     queue = wrap(queue, [additional('text')])
@@ -86,6 +99,7 @@ class Queue(callbacks.Plugin):
             irc.reply("You're not in the queue, did your nick change?")
             return
         self._queue.pop(pos)
+        self._dump_queue()
         irc.reply("Removed you from the queue as requested")
     dequeue = wrap(dequeue)
 
@@ -119,6 +133,7 @@ class Queue(callbacks.Plugin):
             response = "Next in line is %s" % nick
             if notice is not None:
                 response += " with notice '%s'" % notice
+            self._dump_queue()
             irc.reply(response)
         else:
             irc.reply("There's nobody queued up right now.")

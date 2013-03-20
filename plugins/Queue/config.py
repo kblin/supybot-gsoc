@@ -45,5 +45,7 @@ Queue = conf.registerPlugin('Queue')
 conf.registerGlobalValue(Queue, 'checkOpsInChannel',
      registry.String('', """Set the channel where users need to be op in to call nextinline"""))
 
+conf.registerGlobalValue(Queue, 'dumpFile',
+     registry.String('/tmp/queue.txt', """File to dump the queue into"""))
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
