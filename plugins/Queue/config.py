@@ -42,8 +42,8 @@ def configure(advanced):
 
 Queue = conf.registerPlugin('Queue')
 # This is where your configuration variables (if any) should go.  For example:
-# conf.registerGlobalValue(Queue, 'someConfigVariableName',
-#     registry.Boolean(False, """Help for someConfigVariableName."""))
+conf.registerGlobalValue(Queue, 'checkOpsInChannel',
+     registry.String('', """Set the channel where users need to be op in to call nextinline"""))
 
 
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

@@ -104,6 +104,16 @@ class Queue(callbacks.Plugin):
 
     def nextinline(self, irc, msg, args):
         """Show the next person in line"""
+        channel = self.registryValue('checkOpsInChannel')
+        if channel == '':
+            self.log.error('checkOpsInChannel not set!')
+            return
+        if channel not in irc.state.channels:
+            self.log.warn('not in %s' % channel)
+            return
+        if msg.nick not in irc.state.channels[channel].ops:
+            self.log.warn('denying access to non-chanop user %r' % msg.nick)
+            return
         if len(self._queue) > 0:
             nick, notice = self._queue.pop(0)
             response = "Next in line is %s" % nick
@@ -112,7 +122,7 @@ class Queue(callbacks.Plugin):
             irc.reply(response)
         else:
             irc.reply("There's nobody queued up right now.")
-    nextinline = wrap(nextinline, ["owner"])
+    nextinline = wrap(nextinline)
 
 
 Class = Queue
