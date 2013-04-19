@@ -132,7 +132,7 @@ class Queue(callbacks.Plugin):
             nick, notice = self._queue.pop(0)
             response = "Next in line is %s" % nick
             if notice is not None:
-                response += " with notice '%s'" % notice
+                response += " with notice: %s" % notice
             self._dump_queue()
             irc.reply(response)
         else:
