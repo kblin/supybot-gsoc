@@ -48,4 +48,7 @@ conf.registerGlobalValue(Queue, 'checkOpsInChannel',
 conf.registerGlobalValue(Queue, 'dumpFile',
      registry.String('/tmp/queue.txt', """File to dump the queue into"""))
 
+conf.registerGlobalValue(Queue, 'queueSlots',
+     registry.Integer(-1, """Set the maximum number of slots for the queue (-1 to disable)"""))
+
 # vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:

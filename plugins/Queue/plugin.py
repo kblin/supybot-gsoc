@@ -47,6 +47,7 @@ class Queue(callbacks.Plugin):
     The showqueue command shows your current queue position.
     """
     _queue = []
+    _count = 0
 
     def _find_in_queue(self, nick):
         """Check if a given user is in the queue"""
@@ -76,8 +77,13 @@ class Queue(callbacks.Plugin):
         command.
         """
         pos = self._find_in_queue(msg.nick)
+        QUEUE_SLOTS = self.registryValue('queueSlots')
         if pos < 0:
+            if QUEUE_SLOTS >= 0 and self._count >= QUEUE_SLOTS:
+                irc.reply("Sorry, but the queue is out of slots")
+                return
             self._queue.append((msg.nick, notice))
+            self._count += 1
             irc.reply("I queued you at position %s in the queue" % len(self._queue))
             self._dump_queue()
         elif self._queue[pos][1] != notice:
@@ -99,6 +105,7 @@ class Queue(callbacks.Plugin):
             irc.reply("You're not in the queue, did your nick change?")
             return
         self._queue.pop(pos)
+        self._count -= 1
         self._dump_queue()
         irc.reply("Removed you from the queue as requested")
     dequeue = wrap(dequeue)
